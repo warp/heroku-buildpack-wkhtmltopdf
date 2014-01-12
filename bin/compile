@@ -28,42 +28,39 @@ FAKECHROOT_BUILD="$(mktmpdir fakechroot)"
 mkdir -p $BUILD_DIR/.tools/fakechroot
 mkdir -p $CACHE_DIR/.tools/{wget,debootstrap}
 
-export PATH=/sbin:/usr/sbin:$PATH:$CACHE_DIR/.tools/wget/bin:$CACHE_DIR/.tools/debootstrap/usr/sbin:$BUILD_DIR/.tools/fakechroot/sbin:$BUILD_DIR/.tools/fakechroot/bin
+export PATH=/sbin:/usr/sbin:$PATH:$CACHE_DIR/.tools/wget:$CACHE_DIR/.tools/debootstrap/usr/sbin:$BUILD_DIR/.tools/fakechroot/sbin:$BUILD_DIR/.tools/fakechroot/bin
 export DEBOOTSTRAP_DIR=$CACHE_DIR/.tools/debootstrap/usr/share/debootstrap
 
 echo "-----> Fetching and installing wget"
 cd $WGET_BUILD
-curl -O http://ftp.gnu.org/gnu/wget/wget-1.13.4.tar.bz2 >/dev/null 2>&1
-tar jxvf wget-1.13.4.tar.bz2 >/dev/null 2>&1
-cd wget-1.13.4
-./configure --prefix=$CACHE_DIR/.tools/wget --without-ssl >/dev/null 2>&1
-make >/dev/null 2>&1
-make install >/dev/null 2>&1
+curl -O http://security.ubuntu.com/ubuntu/pool/main/w/wget/wget_1.12-1.1ubuntu2.1_amd64.deb >/dev/null 2>&1
+dpkg -x wget_1.12-1.1ubuntu2.1_amd64.deb .>/dev/null 2>&1
+cp usr/bin/wget $CACHE_DIR/.tools/wget/
 echo "wget installed" | indent
 
 echo "-----> Fetching and installing debootstrap"
 cd $DEBOOTSTRAP_BUILD
-wget http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.55.tar.gz >/dev/null 2>&1
-tar zxvf debootstrap_1.0.55.tar.gz >/dev/null
-cd debootstrap-1.0.55
-DESTDIR=$CACHE_DIR/.tools/debootstrap fakeroot make >/dev/null
-DESTDIR=$CACHE_DIR/.tools/debootstrap fakeroot make install >/dev/null
+curl -O http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.56.tar.gz >/dev/null 2>&1
+tar zxvf debootstrap_1.0.56.tar.gz >/dev/null 2>&1
+cd debootstrap-1.0.56
+DESTDIR=$CACHE_DIR/.tools/debootstrap fakeroot make >/dev/null 2>&1
+DESTDIR=$CACHE_DIR/.tools/debootstrap fakeroot make install >/dev/null 2>&1
 echo "debootstrap installed" | indent
 
 echo "-----> Fetching, installing and vendoring fakechroot into /app/.tools/fakechroot/"
 cd $FAKECHROOT_BUILD
-git clone git://github.com/fabiokung/fakechroot.git >/dev/null
+git clone git://github.com/fabiokung/fakechroot.git >/dev/null 2>&1
 cd fakechroot
 ./autogen.sh >/dev/null 2>&1
-./configure --prefix=$BUILD_DIR/.tools/fakechroot >/dev/null
-make >/dev/null
-make install >/dev/null
+./configure --prefix=$BUILD_DIR/.tools/fakechroot >/dev/null 2>&1
+make >/dev/null 2>&1
+make install >/dev/null 2>&1
 echo "fakechroot vendored" | indent
 
 cd $BUILDPACK_DIR
 echo "-----> Bootstraping a new base ubuntu lucid into /app/.root/"
 mkdir -p $BUILD_DIR/.root
-fakechroot -s fakeroot debootstrap --no-check-gpg --variant=fakechroot lucid $BUILD_DIR/.root >/dev/null
+fakechroot -s fakeroot debootstrap --no-check-gpg --variant=fakechroot lucid $BUILD_DIR/.root >/dev/null 2>&1
 fakechroot fakeroot chroot $BUILD_DIR/.root apt-get install -y --force-yes gpgv >/dev/null 2>&1
 echo "/app/.root bootstraped" | indent
 
@@ -77,8 +74,17 @@ deb http://archive.ubuntu.com/ubuntu lucid main universe
 deb http://archive.ubuntu.com/ubuntu lucid-security main
 deb http://archive.ubuntu.com/ubuntu lucid-updates main
 EOF"
-fakechroot fakeroot chroot $BUILD_DIR/.root apt-get update >/dev/null
+fakechroot fakeroot chroot $BUILD_DIR/.root apt-get update >/dev/null 2>&1
 echo "packages updated" | indent
+
+echo "-----> Installing font packages"
+fakechroot fakeroot chroot $BUILD_DIR/.root apt-get -y install gawk ttf-dejavu ttf-droid xfonts-utils fontconfig >/dev/null 2>&1
+curl -o $BUILD_DIR/.root/tmp/fonts-stix.deb http://mirrors.kernel.org/ubuntu/pool/universe/f/fonts-stix/fonts-stix_1.1.0~beta1-2_all.deb >/dev/null 2>&1
+fakechroot fakeroot chroot $BUILD_DIR/.root dpkg -i /tmp/fonts-stix.deb >/dev/null 2>&1
+rm -f $BUILD_DIR/.root/tmp/*
+fakechroot fakeroot chroot $BUILD_DIR/.root fc-cache -f >/dev/null 2>&1
+#fakechroot fakeroot chroot $BUILD_DIR/.root fc-cache -f >/dev/null 2>&1
+echo "font packages installed" | indent
 
 cd $BUILD_DIR/.root
 ln -s ../ app
@@ -86,6 +92,7 @@ ln -s ../ app
 mkdir -p $BUILD_DIR/bin
 cp $BUILDPACK_DIR/bin/fakesu $BUILD_DIR/bin
 cp $BUILDPACK_DIR/bin/aws $BUILD_DIR/bin
+
 
 exit 0
 
