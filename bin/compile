@@ -26,7 +26,7 @@ DEBOOTSTRAP_BUILD="$(mktmpdir debootstrap)"
 FAKECHROOT_BUILD="$(mktmpdir fakechroot)"
 
 mkdir -p $BUILD_DIR/.tools/fakechroot
-mkdir -p $CACHE_DIR/.tools/{wget,debootstrap}
+mkdir -p $CACHE_DIR/.tools/{wget,debootstrap,wkhtmltopdf}
 
 export PATH=/sbin:/usr/sbin:$PATH:$CACHE_DIR/.tools/wget:$CACHE_DIR/.tools/debootstrap/usr/sbin:$BUILD_DIR/.tools/fakechroot/sbin:$BUILD_DIR/.tools/fakechroot/bin
 export DEBOOTSTRAP_DIR=$CACHE_DIR/.tools/debootstrap/usr/share/debootstrap
@@ -83,8 +83,14 @@ curl -o $BUILD_DIR/.root/tmp/fonts-stix.deb http://mirrors.kernel.org/ubuntu/poo
 fakechroot fakeroot chroot $BUILD_DIR/.root dpkg -i /tmp/fonts-stix.deb >/dev/null 2>&1
 rm -f $BUILD_DIR/.root/tmp/*
 fakechroot fakeroot chroot $BUILD_DIR/.root fc-cache -f >/dev/null 2>&1
-#fakechroot fakeroot chroot $BUILD_DIR/.root fc-cache -f >/dev/null 2>&1
 echo "font packages installed" | indent
+
+echo "-----> Installing wkhtmltopdf"
+cd $CACHE_DIR/.tools/wkhtmltopdf/
+curl -O https://wkhtmltopdf.googlecode.com/files/wkhtmltopdf-0.11.0_rc1-static-amd64.tar.bz2 >/dev/null 2>&1
+tar -xjf wkhtmltopdf-0.11.0_rc1-static-amd64.tar.bz2 >/dev/null 2>&1
+mv wkhtmltopdf-amd64 $BUILD_DIR/.root/bin/wkhtmltopdf
+echo "wkhtmltopdf installed" | indent
 
 cd $BUILD_DIR/.root
 ln -s ../ app
